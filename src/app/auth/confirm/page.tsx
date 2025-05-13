@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/utils/supabase";
 import styles from "./styles.module.css";
 
@@ -10,6 +11,44 @@ export default function ResetPassword() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tokenHash = params.get("token_hash");
+    const type = params.get("type");
+
+    if (!tokenHash || type !== "recovery") {
+      setError(
+        "Invalid or expired reset link. Please request a new password reset."
+      );
+      return;
+    }
+
+    // Verify the token on page load
+    const verifyToken = async () => {
+      setLoading(true);
+      try {
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          type: "recovery",
+          token_hash: tokenHash,
+        });
+
+        if (verifyError) {
+          throw verifyError;
+        }
+      } catch (err: any) {
+        setError(
+          err.message ||
+            "Failed to verify reset link. Please request a new one."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    verifyToken();
+  }, []);
 
   const validatePasswords = () => {
     if (password && confirmPassword) {
@@ -35,9 +74,8 @@ export default function ResetPassword() {
     // Get token hash from URL
     const params = new URLSearchParams(window.location.search);
     const tokenHash = params.get("token_hash");
-    const type = params.get("type");
 
-    if (!tokenHash || type !== "recovery") {
+    if (!tokenHash) {
       setError(
         "Invalid or expired reset link. Please request a new password reset."
       );
@@ -70,39 +108,41 @@ export default function ResetPassword() {
   return (
     <div className={styles.container}>
       <h1>Reset Password</h1>
-      <form onSubmit={handleSubmit}>
-        <div className={styles.formGroup}>
-          <label htmlFor="password">New Password</label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={8}
-          />
-          <div className={styles.passwordRequirements}>
-            Password must be at least 8 characters long
+      {error && <div className={styles.error}>{error}</div>}
+      {!error && (
+        <form onSubmit={handleSubmit}>
+          <div className={styles.formGroup}>
+            <label htmlFor="password">New Password</label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+            />
+            <div className={styles.passwordRequirements}>
+              Password must be at least 8 characters long
+            </div>
           </div>
-        </div>
-        <div className={styles.formGroup}>
-          <label htmlFor="confirmPassword">Confirm Password</label>
-          <input
-            type="password"
-            id="confirmPassword"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            minLength={8}
-          />
-        </div>
-        <button type="submit" disabled={loading} className={styles.button}>
-          Reset Password
-        </button>
-        {loading && <div className={styles.loading} />}
-        {error && <div className={styles.error}>{error}</div>}
-        {success && <div className={styles.success}>{success}</div>}
-      </form>
+          <div className={styles.formGroup}>
+            <label htmlFor="confirmPassword">Confirm Password</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={8}
+            />
+          </div>
+          <button type="submit" disabled={loading} className={styles.button}>
+            Reset Password
+          </button>
+          {loading && <div className={styles.loading} />}
+          {success && <div className={styles.success}>{success}</div>}
+        </form>
+      )}
     </div>
   );
 }
