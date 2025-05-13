@@ -1,67 +1,71 @@
-'use client'
+"use client";
 
-import { useState, FormEvent } from 'react'
-import { supabase } from '@/utils/supabase'
-import styles from './styles.module.css'
+import { useState, FormEvent } from "react";
+import { supabase } from "@/utils/supabase";
+import styles from "./styles.module.css";
 
 export default function ResetPassword() {
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const validatePasswords = () => {
     if (password && confirmPassword) {
       if (password !== confirmPassword) {
-        setError('Passwords do not match')
-        return false
+        setError("Passwords do not match");
+        return false;
       }
       if (password.length < 8) {
-        setError('Password must be at least 8 characters long')
-        return false
+        setError("Password must be at least 8 characters long");
+        return false;
       }
-      setError('')
-      return true
+      setError("");
+      return true;
     }
-    return false
-  }
+    return false;
+  };
 
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    
-    if (!validatePasswords()) return
+    e.preventDefault();
+
+    if (!validatePasswords()) return;
 
     // Get token hash from URL
-    const params = new URLSearchParams(window.location.hash.substring(1))
-    const tokenHash = params.get('token_hash')
-    const type = params.get('type')
+    const params = new URLSearchParams(window.location.search);
+    const tokenHash = params.get("token_hash");
+    const type = params.get("type");
 
-    if (!tokenHash || type !== 'recovery') {
-      setError('Invalid or expired reset link. Please request a new password reset.')
-      return
+    if (!tokenHash || type !== "recovery") {
+      setError(
+        "Invalid or expired reset link. Please request a new password reset."
+      );
+      return;
     }
 
-    setLoading(true)
-    setError('')
-    setSuccess('')
+    setLoading(true);
+    setError("");
+    setSuccess("");
 
     try {
       const { error: updateError } = await supabase.auth.updateUser({
-        password: password
-      })
+        password: password,
+      });
 
-      if (updateError) throw updateError
+      if (updateError) throw updateError;
 
-      setSuccess('Password updated successfully! You can now close this window and log in to the app with your new password.')
-      setPassword('')
-      setConfirmPassword('')
+      setSuccess(
+        "Password updated successfully! You can now close this window and log in to the app with your new password."
+      );
+      setPassword("");
+      setConfirmPassword("");
     } catch (err: any) {
-      setError(err.message || 'Failed to update password. Please try again.')
+      setError(err.message || "Failed to update password. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className={styles.container}>
@@ -92,11 +96,7 @@ export default function ResetPassword() {
             minLength={8}
           />
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className={styles.button}
-        >
+        <button type="submit" disabled={loading} className={styles.button}>
           Reset Password
         </button>
         {loading && <div className={styles.loading} />}
@@ -104,5 +104,5 @@ export default function ResetPassword() {
         {success && <div className={styles.success}>{success}</div>}
       </form>
     </div>
-  )
-} 
+  );
+}
